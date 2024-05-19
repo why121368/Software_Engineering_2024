@@ -1,2 +1,0 @@
-Nodes visited: explore -> strange -> new -> life -> and
-Edges visited: explore -> strange, strange -> new, new -> life, life -> and, and -> new
