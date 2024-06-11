@@ -17,32 +17,32 @@ class Graph {
     public void findShortestPath(String start, String end) {
         Map<String, Integer> distances = new HashMap<>();
         Map<String, String> previousNodes = new HashMap<>();
-        PriorityQueue<String> nodes = new PriorityQueue<>(Comparator.comparingInt(distances::get));
+        PriorityQueue<String> nodes = new PriorityQueue<>(Comparator.comparingInt(node -> distances.getOrDefault(node, Integer.MAX_VALUE)));
 
+        // Initialize distances for all nodes
         for (String node : adjMap.keySet()) {
-            if (node.equals(start)) {
-                distances.put(node, 0);
-            } else {
-                distances.put(node, Integer.MAX_VALUE);
-            }
-            nodes.add(node);
+            distances.put(node, Integer.MAX_VALUE);
+            adjMap.get(node).keySet().forEach(neighbor -> distances.putIfAbsent(neighbor, Integer.MAX_VALUE));
         }
+        distances.put(start, 0);
+        nodes.addAll(distances.keySet());
 
         while (!nodes.isEmpty()) {
             String current = nodes.poll();
-            if (distances.get(current) == Integer.MAX_VALUE) {
-                break;
+            if (current == null || distances.get(current) == Integer.MAX_VALUE) {
+                continue; // Skip processing if no more reachable nodes or infinite distance
             }
 
             Map<String, Integer> neighbors = adjMap.get(current);
             if (neighbors != null) {
                 for (Map.Entry<String, Integer> neighbor : neighbors.entrySet()) {
+                    String neighborNode = neighbor.getKey();
                     int alt = distances.get(current) + neighbor.getValue();
-                    if (alt < distances.get(neighbor.getKey())) {
-                        distances.put(neighbor.getKey(), alt);
-                        previousNodes.put(neighbor.getKey(), current);
-                        nodes.remove(neighbor.getKey());
-                        nodes.add(neighbor.getKey());
+                    if (alt < distances.get(neighborNode)) {
+                        distances.put(neighborNode, alt);
+                        previousNodes.put(neighborNode, current);
+                        nodes.remove(neighborNode);
+                        nodes.add(neighborNode); // Update priority queue
                     }
                 }
             }
@@ -53,13 +53,13 @@ class Graph {
             return;
         }
 
-        List<String> path = new LinkedList<>();
+        List<String> path = new ArrayList<>();
         for (String at = end; at != null; at = previousNodes.get(at)) {
             path.add(at);
         }
         Collections.reverse(path);
 
-        System.out.println("Shortest path from " + start + " to " + end + ": " + String.join(" -> ", path) + " (Length: " + distances.get(end) + ")");
+        System.out.println("Shortest path from " + start + " to " + end + ": " + String.join(" -> ", path) + " (Distance: " + distances.get(end) + ")");
     }
 
     public void findBridgeWords(String word1, String word2) {
@@ -142,8 +142,9 @@ class Graph {
         }
 
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputPath))) {
-            writer.write("Nodes visited: " + String.join(" -> ", nodesVisited) + "\n");
-            writer.write("Edges visited: " + String.join(", ", edgesVisited) + "\n");
+            //writer.write("Nodes visited: " + String.join(" -> ", nodesVisited) + "\n");
+            writer.write("Nodes visited: \n" + String.join(" ", nodesVisited) + "\n");
+            // writer.write("Edges visited: " + String.join(", ", edgesVisited) + "\n");
             System.out.println("Random walk output written to: " + outputPath);
         } catch (IOException e) {
             e.printStackTrace();
@@ -180,17 +181,19 @@ public class Main {
             e.printStackTrace();
         }
 
+        Map<String, Map<String, Integer>> adjMap = graph.getAdjMap();
+        System.out.println("Graph:");
+        for (Map.Entry<String, Map<String, Integer>> entry : adjMap.entrySet()) {
+            System.out.print(entry.getKey() + " -> ");
+            List<String> neighbors = entry.getValue().entrySet().stream()
+                    .map(e -> e.getKey() + "(" + e.getValue() + ")")
+                    .collect(Collectors.toList());
+            System.out.println(String.join(", ", neighbors));
+        }
+
+        Scanner scanner = new Scanner(System.in);
+
         while (true) {
-            Map<String, Map<String, Integer>> adjMap = graph.getAdjMap();
-            System.out.println("Graph:");
-            for (Map.Entry<String, Map<String, Integer>> entry : adjMap.entrySet()) {
-                System.out.print(entry.getKey() + " -> ");
-                List<String> neighbors = entry.getValue().entrySet().stream()
-                        .map(e -> e.getKey() + "(" + e.getValue() + ")")
-                        .collect(Collectors.toList());
-                System.out.println(String.join(", ", neighbors));
-            }
-            Scanner scanner = new Scanner(System.in);
             System.out.println("\nSelect an option:");
             System.out.println("1. Find bridge words");
             System.out.println("2. Insert bridge words in new text");
@@ -229,7 +232,6 @@ public class Main {
                 default:
                     System.out.println("Invalid choice. Please try again.");
             }
-            System.out.println("\n\n");
         }
     }
 }
